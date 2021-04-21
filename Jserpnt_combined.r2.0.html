@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FLUIDIZATION</title>
+</head>
+
+<body>
+
+<canvas id="canvas" style ="background-color: black">	CANVAS NOT SUPPORTED
+</canvas>
+
+<!--<script src="snake.js"></script>-->
+
+<script type="text/javascript">
+
+const canvas = document.querySelector("#canvas");
+const ctx = canvas.getContext("2d");
+
+
+//set scale value as the grid unit - every move is 10px 
+const scale = 10;
+const scoreOffset = 20;
+let canvasWidth = 290;//(document.innerWidth -(document.innerWidth % scale));
+let canvasHeight = 290;//(document.innerHeight -(document.innerHeight % scale));
+
+canvas.width = canvasWidth;
+canvas.height = canvasHeight;
+
+// use timer to control game frame rate
+let timer = 100;
+// if g_mode = true - call GODMODE() method
+let g_mode = true;
+
+
+
+function RandNum(low, high){
+	return Math.floor((Math.random() *high) + low);
+};
+function RandNumTen(low, high){
+	let a = Math.floor((Math.random() *high) + low);
+		a = a-(a%10);
+	return a;
+};
+
+
+function clearCanvas(){
+	ctx.clearRect(0,0,canvasWidth, canvasHeight);
+};
+
+//
+//SNAKE CONSTRUCTOR
+//
+function Snake(){
+	this.posX = RandNumTen(0, canvas.width);
+	this.posY = RandNumTen(0, canvas.height);
+	this.xSpeed = scale;
+	this.ySpeed = scale;
+	this.width = scale;
+	this.height = scale;
+	this.color = "#7FFF00";
+	this.headColor = "White";
+	this.tail = [];
+	this.tailSegments = 3;
+
+	this.drawSnakeHead= function(){
+		ctx.beginPath();
+		ctx.rect(this.posX, this.posY, this.width, this.height);
+		ctx.fillStyle = this.headColor;
+		ctx.fill();
+		ctx.closePath();
+	};
+	this.updateTail= function(list){
+		if(this.tail.length > this.tailSegments){
+		this.tail.pop();
+	}
+		this.tail.unshift([this.posX, this.posY]);
+	};
+	this.growTail = function(number){
+		this.tailSegments += number;
+	};
+	this.drawTail = function(arr){
+		for(let incr = 0; incr < arr.length; incr++){
+			ctx.beginPath();
+			ctx.rect(arr[incr][0], arr[incr][1], this.width, this.height);
+			ctx.fillStyle = this.color;
+			ctx.fill();
+			ctx.closePath();
+		}
+	}
+	this.moveSnake =function(){
+		//adjust x coords/width
+        this.posX += this.xSpeed;
+        if(this.posX > canvas.width){
+        	this.posX = 0;
+        }
+        if(this.posX <0){
+        	this.posX = canvas.width;
+        }
+        //adjust y coords/height
+        this.posY += this.ySpeed;
+        if(this.posY >canvas.height){
+        	this.posY = scoreOffset;
+        }
+        if(this.posY <scoreOffset){
+        	this.posY = canvas.height;
+        }
+		
+	};
+	this.changeDirection = function(direction){
+		if(direction == "ArrowLeft"){
+			this.xSpeed = -scale;
+			this.ySpeed = 0;
+		}
+		if(direction =="ArrowRight"){
+			this.xSpeed =  scale;
+			this.ySpeed = 0;			
+		}
+		if(direction =="ArrowDown"){
+			this.xSpeed =  0;
+			this.ySpeed = scale;			
+		}
+		if(direction =="ArrowUp"){
+			this.xSpeed =  0;
+			this.ySpeed = -scale;			
+		}
+	};
+	this.snakeBiteCollision = function(gameObj){
+		//detect collisions between the snake head and all tail segments
+		for(let i =1; i< this.tail.length; i++){
+			if(this.tail[i][0] == this.posX && this.tail[i][1] == this.posY){
+				console.log("Snake Bite");
+				gameObj.lives -= 1;
+				
+			}
+		}
+
+
+	};
+}
+
+//
+//APPLE
+//
+function Apple(){
+	this.name = "apple";
+	this.color = "red";
+	this.appleX = null;
+	this.appleY = null;
+
+	this.paintApple = function(){
+		ctx.beginPath();
+		ctx.rect(this.appleX, this.appleY, scale, scale);
+		ctx.fillStyle = this.color;
+		ctx.fill();
+		ctx.closePath();
+	};
+	this.moveApple = function(){
+		this.appleX = RandNumTen(scoreOffset, 0.8 * canvas.width);
+		this.appleY = RandNumTen(scoreOffset, 0.8 * canvas.height);
+		
+	}
+};
+
+
+//
+//GAME CONTROLLER
+//
+function Game(){
+	this.name = "game";
+	this.lives = 9;
+	this.level = 1;
+	this.score = 0;
+
+	this.GODMODE = function(snake, apple){
+		//make the game win hands free
+		if(snake.posX < apple.appleX){
+			snake.xSpeed = scale;
+		}else if(snake.posX > apple.appleX){
+			snake.xSpeed = -scale;
+		}else if(snake.posX == apple.appleX){
+			snake.xSpeed = 0;
+		}
+		if(snake.posY < apple.appleY){
+			snake.ySpeed = scale;
+		}else if(snake.posY > apple.appleY){
+			snake.ySpeed = -scale;
+		}else if(snake.posY == apple.appleY){
+			snake.ySpeed = 0;
+		}
+		this.lives = 1000;
+	};
+	this.updateLevelandScore = function(){
+		if(this.score  == 1000 ){
+			console.log(`Score: ${this.score}. Level: ${this.level}`);
+			this.level ++;
+			this.score = 0;
+			snake.growTail(1);
+		}
+	};
+	this.paintLives = function(){
+		ctx.font = "8px Arial";
+		ctx.fillrStyle = "white";
+		ctx.fillText(`LIVES: ${this.lives}`,0, 9);
+	};
+	this.paintLevel = function(){
+		ctx.font = "8px Arial";
+		ctx.fillrStyle = "white";
+		ctx.fillText(`LEVEL: ${this.level}`,0, 18);
+	};
+	this.paintScore = function(){
+		ctx.font = "8px Arial";
+		ctx.fillrStyle = "white";
+		ctx.fillText(`SCORE: ${this.score}`,50, 9);
+	};
+	this.paintInstructions = function(){
+		ctx.font = "8px Arial";
+		ctx.fillrStyle = "white";
+		ctx.fillText(`Eat the apple - not your tail!`,50, 18);
+	};
+	this.collisionDetectApple = function(snake, apple){
+		if (snake.posX == apple.appleX && snake.posY == apple.appleY){
+			this.score += 100;
+			apple.moveApple();
+		}
+	};
+	this.endGame = function(gameObj){
+		if(gameObj.lives <= 0){
+			clearInterval(main);
+			console.log("END GAME MET");
+
+			//context.fillText(text,xposition,yposition,maxWidth);	
+			ctx.font = "32px Arial";
+			ctx.fillrStyle = "red";
+			ctx.fillText(`GAME OVER`,50, 100 );
+
+			//reload page
+			setTimeout(()=>{ window.location.reload() }, 5000);
+		}	
+
+	
+	};
+};
+
+
+
+//INSTANTIATE SNAKE
+let snake = new Snake();
+
+let game = new Game();
+
+let apple = new Apple();
+
+apple.moveApple();
+
+
+
+const main = window.setInterval(()=>{
+	
+		clearCanvas();
+
+		
+
+		game.collisionDetectApple(snake, apple);
+		snake.snakeBiteCollision(game);
+		game.updateLevelandScore();
+    	snake.moveSnake();
+    	snake.updateTail();	
+
+		if(g_mode){
+		game.GODMODE(snake, apple);//godmode must come after other snake update methods
+		}
+
+		snake.drawSnakeHead();
+		snake.drawTail(snake.tail);
+		game.paintLives();
+		game.paintLevel();
+		game.paintScore();
+		game.paintInstructions();
+		game.endGame(game);
+
+		apple.paintApple();
+
+
+	},	timer
+	);
+
+window.addEventListener("keydown",(event)=>{
+	snake.changeDirection(event.key);
+}, false);
+
+
+window.addEventListener("touchstart",(event)=>{
+	//event.preventDefault();
+	clientX = event.touches[0].clientX;
+  	clientY = event.touches[0].clientY;
+  	  // move horizontal or vertical as decided by closest delta to snake head
+  	//find the distance between touch and snake head
+		let DY = snake.posY - clientY;
+		let DX = snake.posX - clientX;
+	//initialize variables to indicate plane of movnt
+		let moveXdir, moveYdir = false;
+		let dir = (Math.abs(snake.posY - clientY) > Math.abs(snake.posX - clientX) ) ? "Y_direction" : "X_direction";
+	
+		if(dir == "X_direction" && DX < 0){
+			snake.changeDirection("ArrowLeft");
+		} else if(dir == "X_direction" && DX < 0){
+			snake.changeDirection("ArrowRight");
+		}else if(dir == "Y_direction" && DY < 0){
+			snake.changeDirection("ArrowUp");
+		}else if(dir == "Y_direction" && DY > 0){
+			snake.changeDirection("ArrowDown");
+		}
+
+}, false);
+
+
+</script>
+</body>
+</html>
